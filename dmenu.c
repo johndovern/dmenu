@@ -465,7 +465,14 @@ keypress(XKeyEvent *ev)
 		default:
 			return;
 		}
-	}
+  } else {
+    switch(ksym) {
+    case XK_Tab: ksym = XK_Down;      break;
+    case XK_ISO_Left_Tab: ksym = XK_Up; break;
+		default:
+      break;
+    }
+  }
 
 	switch(ksym) {
 	default:
@@ -560,14 +567,15 @@ insert:
 			calcoffsets();
 		}
 		break;
-	case XK_Tab:
-		if (!sel)
-			return;
-		strncpy(text, sel->text, sizeof text - 1);
-		text[sizeof text - 1] = '\0';
-		cursor = strlen(text);
-		match();
-		break;
+  // case XK_ISO_Left_Tab:
+	// case XK_Tab:
+		// if (!sel)
+		// 	return;
+		// strncpy(text, sel->text, sizeof text - 1);
+		// text[sizeof text - 1] = '\0';
+		// cursor = strlen(text);
+		// match();
+		// break;
 	}
 
 draw:
