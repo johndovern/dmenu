@@ -407,7 +407,14 @@ keypress(XKeyEvent *ev)
 		case XK_J: /* fallthrough */
 		case XK_m: /* fallthrough */
 		case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
-		case XK_n: ksym = XK_Down;      break;
+		case XK_n: // ksym = XK_Down;      break;
+      if (!sel)
+        return;
+      strncpy(text, sel->text, sizeof text - 1);
+      text[sizeof text - 1] = '\0';
+      cursor = strlen(text);
+      match();
+      break;
 		case XK_p: ksym = XK_Up;        break;
 
 		case XK_k: /* delete right */
