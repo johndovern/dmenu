@@ -407,7 +407,8 @@ keypress(XKeyEvent *ev)
 		case XK_J: /* fallthrough */
 		case XK_m: /* fallthrough */
 		case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
-		case XK_n: // ksym = XK_Down;      break;
+		// case XK_n: ksym = XK_Down;      break;
+		case XK_n:
       if (!sel)
         return;
       strncpy(text, sel->text, sizeof text - 1);
