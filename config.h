@@ -4,7 +4,7 @@
 static int topbar = 1;                      /* -b  option; if 0, dmenu appears at bottom     */
 /* -fn option overrides fonts[0]; default X11 font or font set */
 static const char *fonts[] = {
-  "monospace:pixelsize=12",
+  "monospace:size=12",
   "IPAGothic:pixelsize=18:antialias=true:autohint=true",
   "Source Han Sans JP:pixelsize=18:antialias=true:autohint=true",
   "M+ 1c:pixelsize=18:antialias=true:autohint=true",
