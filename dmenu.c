@@ -316,6 +316,13 @@ match(void)
 		matchend = substrend;
 	}
 	curr = sel = matches;
+
+	if(instant && matches && matches==matchend && !lsubstr) {
+		puts(matches->text);
+		cleanup();
+		exit(0);
+	}
+
 	calcoffsets();
 }
 
@@ -407,15 +414,15 @@ keypress(XKeyEvent *ev)
 		case XK_J: /* fallthrough */
 		case XK_m: /* fallthrough */
 		case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
-		// case XK_n: ksym = XK_Down;      break;
-		case XK_n:
-      if (!sel)
-        return;
-      strncpy(text, sel->text, sizeof text - 1);
-      text[sizeof text - 1] = '\0';
-      cursor = strlen(text);
-      match();
-      break;
+		case XK_n: ksym = XK_Down;      break;
+		/* case XK_n: */
+			/* if (!sel) */
+			/* 	return; */
+			/* strncpy(text, sel->text, sizeof text - 1); */
+			/* text[sizeof text - 1] = '\0'; */
+			/* cursor = strlen(text); */
+			/* match(); */
+			/* break; */
 		case XK_p: ksym = XK_Up;        break;
 
 		case XK_k: /* delete right */
@@ -473,14 +480,14 @@ keypress(XKeyEvent *ev)
 		default:
 			return;
 		}
-  } else {
-    switch(ksym) {
-    case XK_Tab: ksym = XK_Down;      break;
-    case XK_ISO_Left_Tab: ksym = XK_Up; break;
-		default:
-      break;
-    }
-  }
+	/* } else { */
+	/* 	switch(ksym) { */
+	/* 	case XK_Tab: ksym = XK_Down;      break; */
+	/* 	case XK_ISO_Left_Tab: ksym = XK_Up; break; */
+	/* 	default: */
+	/* 		break; */
+	/* 	} */
+	}
 
 	switch(ksym) {
 	default:
@@ -575,15 +582,14 @@ insert:
 			calcoffsets();
 		}
 		break;
-  // case XK_ISO_Left_Tab:
-	// case XK_Tab:
-		// if (!sel)
-		// 	return;
-		// strncpy(text, sel->text, sizeof text - 1);
-		// text[sizeof text - 1] = '\0';
-		// cursor = strlen(text);
-		// match();
-		// break;
+	case XK_Tab:
+		if (!sel)
+			return;
+		strncpy(text, sel->text, sizeof text - 1);
+		text[sizeof text - 1] = '\0';
+		cursor = strlen(text);
+		match();
+		break;
 	}
 
 draw:
@@ -903,7 +909,7 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: dmenu [-bfiPrv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+	fputs("usage: dmenu [-bfinPrv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
 	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n", stderr);
 	exit(1);
 }
@@ -951,10 +957,12 @@ main(int argc, char *argv[])
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
-		} else if (!strcmp(argv[i], "-P"))   /* is the input a password */
+		} else if (!strcmp(argv[i], "-P"))    /* is the input a password */
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r")) /* reject input which results in no match */
 			reject_no_match = 1;
+		else if (!strcmp(argv[i], "-n")) /* instant select only match */
+			instant = 1;
 		else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */
