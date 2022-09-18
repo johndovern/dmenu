@@ -1,8 +1,9 @@
 /* See LICENSE file for copyright and license details. */
 /* Default settings; can be overriden by command line. */
 
+static int exact = 0;       /* -e  option; if 1, dmenu only matches exactly */
 static int instant = 0;
-static int topbar = 1; /* -b  option; if 0, dmenu appears at bottom     */
+static int topbar = 1;      /* -b  option; if 0, dmenu appears at bottom     */
 /* -fn option overrides fonts[0]; default X11 font or font set */
 static const char *fonts[] = {
     "monospace:size=12", "IPAGothic:pixelsize=16:antialias=true:autohint=true",

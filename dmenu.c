@@ -296,7 +296,7 @@ match(void)
 			appenditem(item, &matches, &matchend);
 		else if (!fstrncmp(tokv[0], item->text, len))
 			appenditem(item, &lprefix, &prefixend);
-		else
+		else if (!exact)
 			appenditem(item, &lsubstr, &substrend);
 	}
 	if (lprefix) {
@@ -952,6 +952,8 @@ main(int argc, char *argv[])
 			exit(0);
 		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
 			topbar = 0;
+		else if (!strcmp(argv[i], "-e"))   /* only exact matching */
+			exact = 1;
 		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
 			fast = 1;
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
