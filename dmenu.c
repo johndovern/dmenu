@@ -833,7 +833,7 @@ setup(void)
 #endif
 	/* init appearance */
 	for (j = 0; j < SchemeLast; j++)
-		scheme[j] = drw_scm_create(drw, colors[j], alphas[j], 2);
+		scheme[j] = drw_scm_create(drw, colors[j], alphas[j], 3);
 
 	clip = XInternAtom(dpy, "CLIPBOARD",   False);
 	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
@@ -904,7 +904,7 @@ setup(void)
 	                    depth, InputOutput, visual,
 	                    CWOverrideRedirect | CWBackPixel | CWColormap |  CWEventMask | CWBorderPixel, &swa);
 	if (border_width)
-		XSetWindowBorder(dpy, win, scheme[SchemeSel][ColBg].pixel);
+		XSetWindowBorder(dpy, win, scheme[SchemeSel][ColBorder].pixel);
 	XSetClassHint(dpy, win, &ch);
 
 
@@ -958,6 +958,10 @@ read_Xresources(void) {
 			colors[SchemeSel][ColBg] = strdup(xval.addr);
 		if (XrmGetResource(xdb, "dmenu.colornbg", "*", &type, &xval) == True)  /* selected foreground color */
 			colors[SchemeSel][ColFg] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
+			colors[SchemeNorm][ColBorder] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
+			colors[SchemeSel][ColBorder] = strdup(xval.addr);
 
 		XrmDestroyDatabase(xdb);
 	}
