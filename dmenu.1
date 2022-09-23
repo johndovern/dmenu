@@ -3,13 +3,19 @@
 dmenu \- dynamic menu
 .SH SYNOPSIS
 .B dmenu
-.RB [ \-befinrvP ]
+.RB [ \-befinrvPqxyz ]
 .RB [ \-g
 .IR columns ]
 .RB [ \-l
 .IR lines ]
 .RB [ \-m
 .IR monitor ]
+.RB [ \-x
+.IR xoffset ]
+.RB [ \-y
+.IR yoffset ]
+.RB [ \-z
+.IR width ]
 .RB [ \-p
 .IR prompt ]
 .RB [ \-fn
@@ -61,6 +67,9 @@ dmenu will not directly display the keyboard input, but instead replace it with 
 .B \-r
 dmenu will reject any input which would result in no matching option left.
 .TP
+.B \-q
+dmenu will quit if any input would result in no matching option left.
+.TP
 .BI \-g " columns"
 dmenu lists items in a grid with the given number of columns.
 .TP
@@ -71,12 +80,6 @@ dmenu lists items vertically, with the given number of lines.
 dmenu is displayed on the monitor number supplied. Monitor numbers are starting
 from 0.
 .TP
-.RB [ \-x
-.IR xoffset ]
-.RB [ \-y
-.IR yoffset ]
-.RB [ \-z
-.IR width ]
 .BI \-p " prompt"
 defines the prompt to be displayed to the left of the input field.
 .TP

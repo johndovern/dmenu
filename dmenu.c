@@ -47,6 +47,7 @@ static unsigned int dmw = 0; /* make dmenu this wide */
 static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
+static int quit_no_match = 0;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
@@ -362,7 +363,8 @@ insert(const char *str, ssize_t n)
 		memcpy(text, last, BUFSIZ);
 		cursor -= n;
 		match();
-	}
+	} else if (!matches && quit_no_match)
+		exit(1);
 }
 
 static size_t
@@ -897,9 +899,12 @@ setup(void)
 	swa.colormap = cmap;
 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask |
 		ButtonPressMask;
-	win = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0,
+	/* win = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0, */
+	win = XCreateWindow(dpy, parentwin, x, y - (topbar ? 0 : border_width * 2), mw - border_width * 2, mh, border_width,
 	                    depth, InputOutput, visual,
 	                    CWOverrideRedirect | CWBackPixel | CWColormap |  CWEventMask | CWBorderPixel, &swa);
+	if (border_width)
+		XSetWindowBorder(dpy, win, scheme[SchemeSel][ColBg].pixel);
 	XSetClassHint(dpy, win, &ch);
 
 
@@ -927,7 +932,7 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: dmenu [-bfinPrv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+	fputs("usage: dmenu [-befinrvPqxyz] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
 	      "             [-x xoffset] [-y yoffset] [-z width]\n"
 	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n", stderr);
 	exit(1);
@@ -984,6 +989,8 @@ main(int argc, char *argv[])
 			reject_no_match = 1;
 		else if (!strcmp(argv[i], "-n")) /* instant select only match */
 			instant = 1;
+		else if (!strcmp(argv[i], "-q"))
+			quit_no_match = 1;
 		else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */
@@ -1015,6 +1022,8 @@ main(int argc, char *argv[])
 			colors[SchemeSel][ColFg] = argv[++i];
 		else if (!strcmp(argv[i], "-w"))   /* embedding window id */
 			embed = argv[++i];
+		else if (!strcmp(argv[i], "-bw"))
+			border_width = atoi(argv[++i]); /* border width */
 		else
 			usage();
 
