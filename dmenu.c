@@ -211,9 +211,6 @@ drawmenu(void)
 	}
 
 	if (lines > 0) {
-		/* /\* draw vertical list *\/ */
-		/* for (item = curr; item != next; item = item->right) */
-		/* 	drawitem(item, x, y += bh, mw - x); */
 		/* draw grid */
 		int i = 0;
 		for (item = curr; item != next; item = item->right, i++)
@@ -429,14 +426,6 @@ keypress(XKeyEvent *ev)
 		case XK_m: /* fallthrough */
 		case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
 		case XK_n: ksym = XK_Down;      break;
-		/* case XK_n: */
-			/* if (!sel) */
-			/* 	return; */
-			/* strncpy(text, sel->text, sizeof text - 1); */
-			/* text[sizeof text - 1] = '\0'; */
-			/* cursor = strlen(text); */
-			/* match(); */
-			/* break; */
 		case XK_p: ksym = XK_Up;        break;
 
 		case XK_k: /* delete right */
@@ -494,13 +483,6 @@ keypress(XKeyEvent *ev)
 		default:
 			return;
 		}
-	/* } else { */
-	/* 	switch(ksym) { */
-	/* 	case XK_Tab: ksym = XK_Down;      break; */
-	/* 	case XK_ISO_Left_Tab: ksym = XK_Up; break; */
-	/* 	default: */
-	/* 		break; */
-	/* 	} */
 	}
 
 	switch(ksym) {
