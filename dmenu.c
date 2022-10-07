@@ -932,16 +932,23 @@ read_Xresources(void) {
 
 		if (XrmGetResource(xdb, "dmenu.font", "*", &type, &xval) == True) /* font or font set */
 			fonts[0] = strdup(xval.addr);
+
+											/* Normal scheme */
 		if (XrmGetResource(xdb, "dmenu.colornbg", "*", &type, &xval) == True)  /* normal background color */
 			colors[SchemeNorm][ColBg] = strdup(xval.addr);
 		if (XrmGetResource(xdb, "dmenu.colornfg", "*", &type, &xval) == True)  /* normal foreground color */
 			colors[SchemeNorm][ColFg] = strdup(xval.addr);
-		if (XrmGetResource(xdb, "dmenu.colornfg", "*", &type, &xval) == True)  /* selected background color */
+
+											/* Select scheme */
+		if (XrmGetResource(xdb, "dmenu.colorselbg", "*", &type, &xval) == True)  /* selected background color */
 			colors[SchemeSel][ColBg] = strdup(xval.addr);
-		if (XrmGetResource(xdb, "dmenu.colornbg", "*", &type, &xval) == True)  /* selected foreground color */
+		if (XrmGetResource(xdb, "dmenu.colorselfg", "*", &type, &xval) == True)  /* selected foreground color */
 			colors[SchemeSel][ColFg] = strdup(xval.addr);
+
+											/* Border scheme */
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeNorm][ColBorder] = strdup(xval.addr);
+
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeSel][ColBorder] = strdup(xval.addr);
 
