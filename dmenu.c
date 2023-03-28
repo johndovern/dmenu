@@ -48,6 +48,8 @@ static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
 static int quit_no_match = 0;
+static int key_nav = 0;
+static int using_key_nav = 0;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
@@ -186,7 +188,7 @@ drawmenu(void)
 	unsigned int curpos;
 	struct item *item;
 	int x = 0, y = 0, w;
- char *censort;
+	char *censort;
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -199,7 +201,7 @@ drawmenu(void)
 	w = (lines > 0 || !matches) ? mw - x : inputw;
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	if (passwd) {
-	        censort = ecalloc(1, sizeof(text));
+	    censort = ecalloc(1, sizeof(text));
 		memset(censort, '.', strlen(text));
 		drw_text(drw, x, 0, w, bh, lrpad / 2, censort, 0);
 		free(censort);
@@ -393,6 +395,93 @@ movewordedge(int dir)
 }
 
 static void
+nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
+{
+	switch(ksym) {
+	case XK_a: /* fallthrough */
+	case XK_i:
+		using_key_nav = 0;
+		return;
+	case XK_g:
+		if (sel == matches) {
+			cursor = 0;
+			break;
+		}
+		sel = curr = matches;
+		calcoffsets();
+		break;
+	case XK_G:
+		if (text[cursor] != '\0') {
+			cursor = strlen(text);
+			break;
+		}
+		if (next) {
+			/* jump to end of list and position items in reverse */
+			curr = matchend;
+			calcoffsets();
+			curr = prev;
+			calcoffsets();
+			while (next && (curr = curr->right))
+				calcoffsets();
+		}
+		sel = matchend;
+		break;
+	case XK_h:
+		if (cursor > 0 && (!sel || !sel->left || lines > 0)) {
+			cursor = nextrune(-1);
+			break;
+		}
+		if (lines > 0)
+			return;
+		/* fallthrough */
+	case XK_k:
+		if (sel && sel->left && (sel = sel->left)->right == curr) {
+			curr = prev;
+			calcoffsets();
+		}
+		break;
+	case XK_l:
+		if (text[cursor] != '\0') {
+			cursor = nextrune(+1);
+			break;
+		}
+		if (lines > 0)
+			return;
+		/* fallthrough */
+	case XK_j:
+		if (sel && sel->right && (sel = sel->right) == next) {
+			curr = next;
+			calcoffsets();
+		}
+		break;
+	case XK_Return:
+	case XK_KP_Enter:
+		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
+		if (!(ev->state & ControlMask)) {
+			cleanup();
+			exit(0);
+		}
+		if (sel)
+			sel->out = 1;
+		break;
+	case XK_Tab:
+		if (!sel)
+			return;
+		strncpy(text, sel->text, sizeof text - 1);
+		text[sizeof text - 1] = '\0';
+		cursor = strlen(text);
+		match();
+		break;
+	case XK_q: /* fallthrough */
+	case XK_Q:
+		cleanup();
+		exit(1);
+	}
+
+	drawmenu();
+}
+
+static void
 keypress(XKeyEvent *ev)
 {
 	char buf[32];
@@ -409,6 +498,11 @@ keypress(XKeyEvent *ev)
 	case XLookupKeySym:
 	case XLookupBoth:
 		break;
+	}
+
+	if (using_key_nav) {
+		nav_keypress(buf, len, ksym, status, ev);
+		return;
 	}
 
 	if (ev->state & ControlMask) {
@@ -519,6 +613,10 @@ insert:
 		sel = matchend;
 		break;
 	case XK_Escape:
+		if (key_nav) {
+			using_key_nav = 1;
+			goto draw;
+		}
 		cleanup();
 		exit(1);
 	case XK_Home:
@@ -977,11 +1075,14 @@ main(int argc, char *argv[])
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
-		} else if (!strcmp(argv[i], "-P"))    /* is the input a password */
+	    } else if (!strcmp(argv[i], "-k")) { /* navigate with vim keys */
+			key_nav = 1;
+	        using_key_nav = 1;
+		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
-		else if (!strcmp(argv[i], "-r")) /* reject input which results in no match */
+		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
 			reject_no_match = 1;
-		else if (!strcmp(argv[i], "-n")) /* instant select only match */
+		else if (!strcmp(argv[i], "-n"))   /* instant select only match */
 			instant = 1;
 		else if (!strcmp(argv[i], "-q"))
 			quit_no_match = 1;
