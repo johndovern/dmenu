@@ -208,7 +208,12 @@ drawmenu(void)
 	} else drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
-	if ((curpos += lrpad / 2 - 1) < w) {
+	if (using_key_nav) {
+		drw_setscheme(drw, scheme[SchemeSel]);
+		size_t nav_pos = (cursor == 0) ? cursor : cursor - 1;
+		char nav_char[] = { text[nav_pos], '\0'};
+		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
+	} else if ((curpos += lrpad / 2 - 1) < w) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
 	}
@@ -398,10 +403,12 @@ static void
 nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 {
 	switch(ksym) {
-	case XK_a: /* fallthrough */
 	case XK_i:
+		cursor = (cursor == 0) ? cursor : cursor - 1;
+		/* fallthrough */
+	case XK_a:
 		using_key_nav = 0;
-		return;
+		break;
 	case XK_g:
 		if (sel == matches) {
 			cursor = 0;
