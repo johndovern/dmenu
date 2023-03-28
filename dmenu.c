@@ -515,7 +515,7 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 			return;
 		strncpy(text, sel->text, sizeof text - 1);
 		text[sizeof text - 1] = '\0';
-		cursor = strlen(text);
+		cursor = strlen(text) - 1;
 		match();
 		break;
 	default:
