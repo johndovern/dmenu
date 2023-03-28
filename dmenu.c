@@ -48,7 +48,6 @@ static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
 static int quit_no_match = 0;
-static int key_nav = 0;
 static int using_key_nav = 0;
 static size_t cursor;
 static struct item *items = NULL;

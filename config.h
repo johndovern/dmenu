@@ -40,3 +40,6 @@ static const char worddelimiters[] = " ";
 
 /* Size of the window border */
 static unsigned int border_width = 0;
+
+/* Enable vim navigation everywhere */
+static unsigned int key_nav = 0;
