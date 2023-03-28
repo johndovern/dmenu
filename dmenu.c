@@ -208,12 +208,17 @@ drawmenu(void)
 	} else drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
+	curpos += lrpad / 2 - 1;
 	if (using_key_nav) {
 		drw_setscheme(drw, scheme[SchemeSel]);
-		size_t nav_pos = (cursor == 0) ? cursor : cursor - 1;
-		char nav_char[] = { text[nav_pos], '\0'};
-		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
-	} else if ((curpos += lrpad / 2 - 1) < w) {
+		if (strlen(text)) {
+			char nav_char[] = { text[cursor], '\0'};
+			unsigned int nav_pad = (curpos) ? curpos : 10;
+			drw_text(drw, x + nav_pad, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
+		} else {
+			drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
+		}
+	} else if (curpos < w) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
 	}
@@ -402,11 +407,12 @@ movewordedge(int dir)
 static void
 nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 {
+	size_t next_rune = nextrune(+1);
 	switch(ksym) {
-	case XK_i:
-		cursor = (cursor == 0) ? cursor : cursor - 1;
-		/* fallthrough */
 	case XK_a:
+		cursor = (text[cursor] != '\0') ? next_rune : cursor;
+		/* fallthrough */
+	case XK_i:
 		using_key_nav = 0;
 		break;
 	case XK_g:
@@ -450,6 +456,8 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 	case XK_l:
 		if (text[cursor] != '\0') {
 			cursor = nextrune(+1);
+			if (text[cursor] == '\0')
+				cursor = nextrune(-1);
 			break;
 		}
 		if (lines > 0)
@@ -622,6 +630,7 @@ insert:
 	case XK_Escape:
 		if (key_nav) {
 			using_key_nav = 1;
+			cursor = (cursor == 0) ? cursor : cursor - 1;
 			goto draw;
 		}
 		cleanup();
