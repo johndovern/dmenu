@@ -474,13 +474,11 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		sel = matchend;
 		break;
 	case XK_h:
-		if (cursor > 0 && (!sel || !sel->left || lines > 0)) {
+		if (cursor > 0) {
 			cursor = nextrune(-1);
 			break;
 		}
-		if (lines > 0)
-			return;
-		/* fallthrough */
+		break;
 	case XK_k:
 		if (sel && sel->left && (sel = sel->left)->right == curr) {
 			curr = prev;
@@ -491,12 +489,9 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		if (text[cursor] != '\0') {
 			cursor = nextrune(+1);
 			if (text[cursor] == '\0')
-				cursor = nextrune(-1);
-			break;
+				--cursor;
 		}
-		if (lines > 0)
-			return;
-		/* fallthrough */
+		break;
 	case XK_j:
 		if (sel && sel->right && (sel = sel->right) == next) {
 			curr = next;
