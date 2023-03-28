@@ -436,6 +436,7 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 			using_key_nav = 0;
 			break;
 		}
+		break;
 	case XK_I:
 		cursor = using_key_nav = 0;
 		break;
