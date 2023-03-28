@@ -3,11 +3,19 @@
 dmenu \- dynamic menu
 .SH SYNOPSIS
 .B dmenu
-.RB [ \-bfirvP ]
+.RB [ \-befinrvPqxyz ]
+.RB [ \-g
+.IR columns ]
 .RB [ \-l
 .IR lines ]
 .RB [ \-m
 .IR monitor ]
+.RB [ \-x
+.IR xoffset ]
+.RB [ \-y
+.IR yoffset ]
+.RB [ \-z
+.IR width ]
 .RB [ \-p
 .IR prompt ]
 .RB [ \-fn
@@ -40,6 +48,9 @@ which lists programs in the user's $PATH and runs the result in their $SHELL.
 .B \-b
 dmenu appears at the bottom of the screen.
 .TP
+.B \-e
+dmenu matches options exactly
+.TP
 .B \-f
 dmenu grabs the keyboard before reading stdin if not reading from a tty. This
 is faster, but will lock up X until stdin reaches end\-of\-file.
@@ -47,11 +58,20 @@ is faster, but will lock up X until stdin reaches end\-of\-file.
 .B \-i
 dmenu matches menu items case insensitively.
 .TP
+.B \-n
+dmenu instantly selects if only one match.
+.TP
 .B \-P
 dmenu will not directly display the keyboard input, but instead replace it with dots. All data from stdin will be ignored.
 .TP
 .B \-r
 dmenu will reject any input which would result in no matching option left.
+.TP
+.B \-q
+dmenu will quit if any input would result in no matching option left.
+.TP
+.BI \-g " columns"
+dmenu lists items in a grid with the given number of columns.
 .TP
 .BI \-l " lines"
 dmenu lists items vertically, with the given number of lines.
@@ -62,6 +82,24 @@ from 0.
 .TP
 .BI \-p " prompt"
 defines the prompt to be displayed to the left of the input field.
+.TP
+.BI \-x " xoffset"
+dmenu is placed at this offset measured from the left side of the monitor.
+Can be negative.
+If option
+.B \-m
+is present, the measurement will use the given monitor.
+.TP
+.BI \-y " yoffset"
+dmenu is placed at this offset measured from the top of the monitor.  If the
+.B \-b
+option is used, the offset is measured from the bottom.  Can be negative.
+If option
+.B \-m
+is present, the measurement will use the given monitor.
+.TP
+.BI \-z " width"
+sets the width of the dmenu window.
 .TP
 .BI \-fn " font"
 defines the font or font set used.
