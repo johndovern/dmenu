@@ -412,6 +412,7 @@ movewordedge(int dir)
 static void
 nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 {
+	static const size_t quit_len = LENGTH(quit_syms);
 	size_t next_rune = nextrune(+1);
 	switch(ksym) {
 	case XK_0:
@@ -517,10 +518,12 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		cursor = strlen(text);
 		match();
 		break;
-	case XK_q: /* fallthrough */
-	case XK_Q:
-		cleanup();
-		exit(1);
+	default:
+		for (size_t i = 0; i < quit_len; ++i)
+			if (quit_syms[i] == ksym) {
+				cleanup();
+				exit(1);
+			}
 	}
 
 	drawmenu();
@@ -552,7 +555,8 @@ keypress(XKeyEvent *ev)
 			   (ksym == escape_sym &&
 				(ev->state & esc_state) == esc_state)) {
 		using_key_nav = 1;
-		cursor = (cursor == 0) ? cursor : nextrune(-1);
+		if (cursor)
+			cursor = nextrune(-1);
 		goto draw;
 		return;
 	}

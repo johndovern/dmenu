@@ -45,3 +45,7 @@ static unsigned int border_width = 0;
 static unsigned int key_nav = 1;
 static KeySym escape_sym = XK_n;
 static unsigned int esc_state = ControlMask;
+static KeySym quit_syms[] = {
+    XK_q,
+    XK_Q,
+};
