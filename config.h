@@ -43,3 +43,4 @@ static unsigned int border_width = 0;
 
 /* Enable vim navigation everywhere */
 static unsigned int key_nav = 1;
+static unsigned int force_esc = 1;

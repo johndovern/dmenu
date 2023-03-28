@@ -399,6 +399,13 @@ movewordedge(int dir)
 			cursor = nextrune(+1);
 		while (text[cursor] && !strchr(worddelimiters, text[cursor]))
 			cursor = nextrune(+1);
+		if (using_key_nav) {
+			size_t next_rune = nextrune(+1);
+			if (text[cursor] != '\0' && text[next_rune] != '\0')
+				cursor = next_rune;
+			else if (text[cursor] == '\0')
+				--cursor;
+		}
 	}
 }
 
@@ -407,25 +414,50 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 {
 	size_t next_rune = nextrune(+1);
 	switch(ksym) {
+	case XK_0:
+		cursor = 0;
+		break;
+	case XK_dollar:
+		if (text[cursor] != '\0') {
+			cursor = strlen(text) - 1;
+			break;
+		}
+		break;
 	case XK_a:
 		cursor = (text[cursor] != '\0') ? next_rune : cursor;
 		/* fallthrough */
 	case XK_i:
 		using_key_nav = 0;
 		break;
+	case XK_A:
+		if (text[next_rune] != '\0') {
+			cursor = strlen(text);
+			using_key_nav = 0;
+			break;
+		}
+	case XK_I:
+		cursor = using_key_nav = 0;
+		break;
+	case XK_D:
+		text[cursor] = '\0';
+		if (cursor)
+			cursor = nextrune(-1);
+		match();
+		break;
+	case XK_b:
+		movewordedge(-1);
+		break;
+	case XK_w:
+		movewordedge(+1);
+		break;
 	case XK_g:
 		if (sel == matches) {
-			cursor = 0;
 			break;
 		}
 		sel = curr = matches;
 		calcoffsets();
 		break;
 	case XK_G:
-		if (text[cursor] != '\0') {
-			cursor = strlen(text);
-			break;
-		}
 		if (next) {
 			/* jump to end of list and position items in reverse */
 			curr = matchend;
@@ -627,9 +659,11 @@ insert:
 		break;
 	case XK_Escape:
 		if (key_nav) {
-			using_key_nav = 1;
-			cursor = (cursor == 0) ? cursor : cursor - 1;
-			goto draw;
+			if ((force_esc && ev->state & ShiftMask) || force_esc == 0) {
+				using_key_nav = 1;
+				cursor = (cursor == 0) ? cursor : cursor - 1;
+				goto draw;
+			}
 		}
 		cleanup();
 		exit(1);
@@ -1092,6 +1126,7 @@ main(int argc, char *argv[])
 	    } else if (!strcmp(argv[i], "-k")) { /* navigate with vim keys */
 			key_nav = 1;
 	        using_key_nav = 1;
+			force_esc = 0;
 		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
