@@ -210,7 +210,7 @@ drawmenu(void)
 	curpos += lrpad / 2 - 1;
 	if (using_key_nav) {
 		drw_setscheme(drw, scheme[SchemeSel]);
-		if (strlen(text)) {
+		if (text[0] != '\0') {
 			char nav_char[] = { text[cursor], '\0'};
 			drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
 		} else {
