@@ -42,4 +42,4 @@ static const char worddelimiters[] = " ";
 static unsigned int border_width = 0;
 
 /* Enable vim navigation everywhere */
-static unsigned int key_nav = 0;
+static unsigned int key_nav = 1;

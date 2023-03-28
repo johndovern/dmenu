@@ -212,8 +212,7 @@ drawmenu(void)
 		drw_setscheme(drw, scheme[SchemeSel]);
 		if (strlen(text)) {
 			char nav_char[] = { text[cursor], '\0'};
-			unsigned int nav_pad = (curpos) ? curpos : 10;
-			drw_text(drw, x + nav_pad, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
+			drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
 		} else {
 			drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
 		}
