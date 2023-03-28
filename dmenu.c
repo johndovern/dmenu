@@ -48,7 +48,7 @@ static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
 static int quit_no_match = 0;
-static int using_key_nav = 0;
+static int using_vim_nav = 0;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
@@ -208,11 +208,11 @@ drawmenu(void)
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
 	curpos += lrpad / 2 - 1;
-	if (using_key_nav && text[0] != '\0') {
+	if (using_vim_nav && text[0] != '\0') {
 		drw_setscheme(drw, scheme[SchemeCursor]);
 		char nav_char[] = { text[cursor], '\0'};
 		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
-	} else if (using_key_nav) {
+	} else if (using_vim_nav) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
 	} else if (curpos < w) {
@@ -398,7 +398,7 @@ movewordedge(int dir)
 			cursor = nextrune(+1);
 		while (text[cursor] && !strchr(worddelimiters, text[cursor]))
 			cursor = nextrune(+1);
-		if (using_key_nav) {
+		if (using_vim_nav) {
 			size_t next_rune = nextrune(+1);
 			if (text[cursor] != '\0' && text[next_rune] != '\0')
 				cursor = next_rune;
@@ -427,17 +427,17 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		cursor = (text[cursor] != '\0') ? next_rune : cursor;
 		/* fallthrough */
 	case XK_i:
-		using_key_nav = 0;
+		using_vim_nav = 0;
 		break;
 	case XK_A:
 		if (text[next_rune] != '\0') {
 			cursor = strlen(text);
-			using_key_nav = 0;
+			using_vim_nav = 0;
 			break;
 		}
 		break;
 	case XK_I:
-		cursor = using_key_nav = 0;
+		cursor = using_vim_nav = 0;
 		break;
 	case XK_D:
 		text[cursor] = '\0';
@@ -548,13 +548,13 @@ keypress(XKeyEvent *ev)
 		break;
 	}
 
-	if (using_key_nav) {
+	if (using_vim_nav) {
 		nav_keypress(buf, len, ksym, status, ev);
 		return;
-	} else if (key_nav &&
+	} else if (vim_nav &&
 			   (ksym == escape_sym &&
 				(ev->state & esc_state) == esc_state)) {
-		using_key_nav = 1;
+		using_vim_nav = 1;
 		if (cursor)
 			cursor = nextrune(-1);
 		goto draw;
@@ -1135,8 +1135,8 @@ main(int argc, char *argv[])
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
 	    } else if (!strcmp(argv[i], "-k")) { /* navigate with vim keys */
-			key_nav = 1;
-	        using_key_nav = 1;
+			vim_nav = 1;
+	        using_vim_nav = 1;
 			escape_sym = XK_Escape;
 			esc_state = 0;
 		} else if (!strcmp(argv[i], "-P")) /* is the input a password */

@@ -43,7 +43,7 @@ static const char worddelimiters[] = " ";
 static unsigned int border_width = 0;
 
 /* Enable vim navigation everywhere */
-static unsigned int key_nav = 1;
+static unsigned int vim_nav = 1;
 static KeySym escape_sym = XK_n;
 static unsigned int esc_state = ControlMask;
 static KeySym quit_syms[] = {
