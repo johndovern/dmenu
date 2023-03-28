@@ -30,7 +30,7 @@
 #define OPAQUE 0xFFU
 
 /* enums */
-enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+enum { SchemeNorm, SchemeCursor, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
 
 struct item {
 	char *text;
@@ -208,14 +208,13 @@ drawmenu(void)
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
 	curpos += lrpad / 2 - 1;
-	if (using_key_nav) {
-		drw_setscheme(drw, scheme[SchemeSel]);
-		if (text[0] != '\0') {
-			char nav_char[] = { text[cursor], '\0'};
-			drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
-		} else {
-			drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
-		}
+	if (using_key_nav && text[0] != '\0') {
+		drw_setscheme(drw, scheme[SchemeCursor]);
+		char nav_char[] = { text[cursor], '\0'};
+		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
+	} else if (using_key_nav) {
+		drw_setscheme(drw, scheme[SchemeNorm]);
+		drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
 	} else if (curpos < w) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
@@ -1091,6 +1090,12 @@ read_Xresources(void) {
 		if (XrmGetResource(xdb, "dmenu.colornfg", "*", &type, &xval) == True)  /* normal foreground color */
 			colors[SchemeNorm][ColFg] = strdup(xval.addr);
 
+											/* Cursor scheme */
+		if (XrmGetResource(xdb, "dmenu.colorcurbg", "*", &type, &xval) == True)  /* cursor background color */
+			colors[SchemeCursor][ColBg] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorcurfg", "*", &type, &xval) == True)  /* cursor foreground color */
+			colors[SchemeCursor][ColFg] = strdup(xval.addr);
+
 											/* Select scheme */
 		if (XrmGetResource(xdb, "dmenu.colorselbg", "*", &type, &xval) == True)  /* selected background color */
 			colors[SchemeSel][ColBg] = strdup(xval.addr);
@@ -1100,9 +1105,10 @@ read_Xresources(void) {
 											/* Border scheme */
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeNorm][ColBorder] = strdup(xval.addr);
-
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeSel][ColBorder] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorcurbord", "*", &type, &xval) == True) /* normal border */
+			colors[SchemeCursor][ColBorder] = strdup(xval.addr);
 
 		XrmDestroyDatabase(xdb);
 	}
