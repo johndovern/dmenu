@@ -548,6 +548,13 @@ keypress(XKeyEvent *ev)
 	if (using_key_nav) {
 		nav_keypress(buf, len, ksym, status, ev);
 		return;
+	} else if (key_nav &&
+			   (ksym == escape_sym &&
+				(ev->state & esc_state) == esc_state)) {
+		using_key_nav = 1;
+		cursor = (cursor == 0) ? cursor : nextrune(-1);
+		goto draw;
+		return;
 	}
 
 	if (ev->state & ControlMask) {
@@ -658,13 +665,6 @@ insert:
 		sel = matchend;
 		break;
 	case XK_Escape:
-		if (key_nav) {
-			if ((force_esc && ev->state & ShiftMask) || force_esc == 0) {
-				using_key_nav = 1;
-				cursor = (cursor == 0) ? cursor : cursor - 1;
-				goto draw;
-			}
-		}
 		cleanup();
 		exit(1);
 	case XK_Home:
@@ -1126,7 +1126,8 @@ main(int argc, char *argv[])
 	    } else if (!strcmp(argv[i], "-k")) { /* navigate with vim keys */
 			key_nav = 1;
 	        using_key_nav = 1;
-			force_esc = 0;
+			escape_sym = XK_Escape;
+			esc_state = 0;
 		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */

@@ -43,4 +43,5 @@ static unsigned int border_width = 0;
 
 /* Enable vim navigation everywhere */
 static unsigned int key_nav = 1;
-static unsigned int force_esc = 1;
+static KeySym escape_sym = XK_n;
+static unsigned int esc_state = ControlMask;
