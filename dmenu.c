@@ -214,7 +214,7 @@ drawmenu(void)
 		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
 	} else if (using_vim_nav) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
-		drw_rect(drw, x + curpos, 2, 10, bh - 4, 1, 0);
+		drw_rect(drw, x + curpos, 2, lrpad / 2, bh - 4, 1, 0);
 	} else if (curpos < w) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
@@ -430,11 +430,8 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		using_vim_nav = 0;
 		break;
 	case XK_A:
-		if (text[next_rune] != '\0') {
-			cursor = strlen(text);
-			using_vim_nav = 0;
-			break;
-		}
+		cursor = strlen(text);
+		using_vim_nav = 0;
 		break;
 	case XK_I:
 		cursor = using_vim_nav = 0;
@@ -444,6 +441,12 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		if (cursor)
 			cursor = nextrune(-1);
 		match();
+		break;
+	case XK_x:
+		cursor = nextrune(+1);
+		insert(NULL, nextrune(-1) - cursor);
+		if (text[cursor] == '\0' && text[0] != '\0')
+			--cursor;
 		break;
 	case XK_b:
 		movewordedge(-1);
