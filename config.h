@@ -18,9 +18,9 @@ static const char *prompt =
 static const char *colors[SchemeLast][3] = {
                     /*     fg         bg        bd       */
     [SchemeNorm]    = {"#eeeeee", "#212121", "#009688"},
-    [SchemeCursor]  = {"#eeeeee", "#212121", "#009688"},
     [SchemeSel]     = {"#eeeeee", "#f44336", "#009688"},
     [SchemeOut]     = {"#212121", "#f44336", "#009688"},
+    [SchemeCursor]  = {"#eeeeee", "#212121", "#009688"},
 };
 static const unsigned int alphas[SchemeLast][3] = {
     /*		fgalpha		bgalphga	*/
@@ -42,11 +42,13 @@ static const char worddelimiters[] = " ";
 /* Size of the window border */
 static unsigned int border_width = 0;
 
-/* Enable vim navigation everywhere */
-static unsigned int vim_nav = 1;
-static KeySym escape_sym = XK_n;
-static unsigned int esc_state = ControlMask;
-static KeySym quit_syms[] = {
-    XK_q,
-    XK_Q,
+/*
+ * -vi option; if nonzero, vi mode is always enabled and can be
+ * accessed with the global_esc keysym + mod mask
+ */
+static unsigned int vi_mode = 1;
+static Key global_esc = { XK_n, Mod1Mask };	/* escape key when vi mode is not enabled explicitly */
+static Key quit_keys[] = {
+	/* keysym	modifier */
+	{ XK_q,		0 }
 };

@@ -30,13 +30,18 @@
 #define OPAQUE 0xFFU
 
 /* enums */
-enum { SchemeNorm, SchemeCursor, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeOut, SchemeCursor, SchemeLast }; /* color schemes */
 
 struct item {
 	char *text;
 	struct item *left, *right;
 	int out;
 };
+
+typedef struct {
+	KeySym ksym;
+	unsigned int state;
+} Key;
 
 static char text[BUFSIZ] = "";
 static char *embed;
@@ -48,7 +53,7 @@ static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
 static int quit_no_match = 0;
-static int using_vim_nav = 0;
+static unsigned int using_vi_mode = 0;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
@@ -208,11 +213,11 @@ drawmenu(void)
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
 	curpos += lrpad / 2 - 1;
-	if (using_vim_nav && text[0] != '\0') {
+	if (using_vi_mode && text[0] != '\0') {
 		drw_setscheme(drw, scheme[SchemeCursor]);
-		char nav_char[] = { text[cursor], '\0'};
-		drw_text(drw, x + curpos, 0, TEXTW(nav_char) - lrpad, bh, 0, nav_char, 0);
-	} else if (using_vim_nav) {
+		char vi_char[] = {text[cursor], '\0'};
+		drw_text(drw, x + curpos, 0, TEXTW(vi_char) - lrpad, bh, 0, vi_char, 0);
+	} else if (using_vi_mode) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, lrpad / 2, bh - 4, 1, 0);
 	} else if (curpos < w) {
@@ -398,61 +403,43 @@ movewordedge(int dir)
 			cursor = nextrune(+1);
 		while (text[cursor] && !strchr(worddelimiters, text[cursor]))
 			cursor = nextrune(+1);
-		if (using_vim_nav) {
-			size_t next_rune = nextrune(+1);
-			if (text[cursor] != '\0' && text[next_rune] != '\0')
-				cursor = next_rune;
-			else if (text[cursor] == '\0')
-				--cursor;
-		}
 	}
 }
 
 static void
-nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
+vi_keypress(const KeySym ksym, const XKeyEvent *ev)
 {
-	static const size_t quit_len = LENGTH(quit_syms);
-	size_t next_rune = nextrune(+1);
+	static const size_t quit_len = LENGTH(quit_keys);
+	if (ev->state & ControlMask) {
+		switch(ksym) {
+		case XK_c:
+			cleanup();
+			exit(1);
+		default: return;
+		}
+	}
+
 	switch(ksym) {
+	/* movement */
 	case XK_0:
 		cursor = 0;
 		break;
 	case XK_dollar:
-		if (text[cursor] != '\0') {
+		if (text[cursor + 1] != '\0') {
 			cursor = strlen(text) - 1;
 			break;
 		}
 		break;
-	case XK_a:
-		cursor = (text[cursor] != '\0') ? next_rune : cursor;
-		/* fallthrough */
-	case XK_i:
-		using_vim_nav = 0;
-		break;
-	case XK_A:
-		cursor = strlen(text);
-		using_vim_nav = 0;
-		break;
-	case XK_I:
-		cursor = using_vim_nav = 0;
-		break;
-	case XK_D:
-		text[cursor] = '\0';
-		if (cursor)
-			cursor = nextrune(-1);
-		match();
-		break;
-	case XK_x:
-		cursor = nextrune(+1);
-		insert(NULL, nextrune(-1) - cursor);
-		if (text[cursor] == '\0' && text[0] != '\0')
-			--cursor;
-		break;
 	case XK_b:
 		movewordedge(-1);
 		break;
-	case XK_w:
+	case XK_e:
+		cursor = nextrune(+1);
 		movewordedge(+1);
+		if (text[cursor] == '\0')
+			--cursor;
+		else
+			cursor = nextrune(-1);
 		break;
 	case XK_g:
 		if (sel == matches) {
@@ -474,9 +461,13 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		sel = matchend;
 		break;
 	case XK_h:
-		if (cursor > 0) {
+		if (cursor)
 			cursor = nextrune(-1);
-			break;
+		break;
+	case XK_j:
+		if (sel && sel->right && (sel = sel->right) == next) {
+			curr = next;
+			calcoffsets();
 		}
 		break;
 	case XK_k:
@@ -486,18 +477,54 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		}
 		break;
 	case XK_l:
-		if (text[cursor] != '\0') {
+		if (text[cursor] != '\0' && text[cursor + 1] != '\0')
 			cursor = nextrune(+1);
-			if (text[cursor] == '\0')
-				--cursor;
-		}
+		else if (text[cursor] == '\0' && cursor)
+			--cursor;
 		break;
-	case XK_j:
-		if (sel && sel->right && (sel = sel->right) == next) {
-			curr = next;
-			calcoffsets();
-		}
+	case XK_w:
+		movewordedge(+1);
+		if (text[cursor] != '\0' && text[cursor + 1] != '\0')
+			cursor = nextrune(+1);
+		else if (cursor)
+			--cursor;
 		break;
+	/* insertion */
+	case XK_a:
+		cursor = nextrune(+1);
+		/* fallthrough */
+	case XK_i:
+		using_vi_mode = 0;
+		break;
+	case XK_A:
+		if (text[cursor] != '\0')
+			cursor = strlen(text);
+		using_vi_mode = 0;
+		break;
+	case XK_I:
+		cursor = using_vi_mode = 0;
+		break;
+	case XK_p:
+		if (text[cursor] != '\0')
+			cursor = nextrune(+1);
+		XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
+							utf8, utf8, win, CurrentTime);
+		return;
+	/* deletion */
+	case XK_D:
+		text[cursor] = '\0';
+		if (cursor)
+			cursor = nextrune(-1);
+		match();
+		break;
+	case XK_x:
+		cursor = nextrune(+1);
+		insert(NULL, nextrune(-1) - cursor);
+		if (text[cursor] == '\0' && text[0] != '\0')
+			--cursor;
+		match();
+		break;
+	/* misc. */
 	case XK_Return:
 	case XK_KP_Enter:
 		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
@@ -518,7 +545,8 @@ nav_keypress(char *buf, int len, KeySym ksym, Status status, XKeyEvent *ev)
 		break;
 	default:
 		for (size_t i = 0; i < quit_len; ++i)
-			if (quit_syms[i] == ksym) {
+			if (quit_keys[i].ksym == ksym &&
+				(quit_keys[i].state & ev->state) == quit_keys[i].state) {
 				cleanup();
 				exit(1);
 			}
@@ -546,17 +574,16 @@ keypress(XKeyEvent *ev)
 		break;
 	}
 
-	if (using_vim_nav) {
-		nav_keypress(buf, len, ksym, status, ev);
+	if (using_vi_mode) {
+		vi_keypress(ksym, ev);
 		return;
-	} else if (vim_nav &&
-			   (ksym == escape_sym &&
-				(ev->state & esc_state) == esc_state)) {
-		using_vim_nav = 1;
+	} else if (vi_mode &&
+			   (ksym == global_esc.ksym &&
+				(ev->state & global_esc.state) == global_esc.state)) {
+		using_vi_mode = 1;
 		if (cursor)
 			cursor = nextrune(-1);
 		goto draw;
-		return;
 	}
 
 	if (ev->state & ControlMask) {
@@ -869,6 +896,8 @@ paste(void)
 		insert(p, (q = strchr(p, '\n')) ? q - p : (ssize_t)strlen(p));
 		XFree(p);
 	}
+	if (using_vi_mode && text[cursor] == '\0')
+		--cursor;
 	drawmenu();
 }
 
@@ -1132,11 +1161,6 @@ main(int argc, char *argv[])
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
-	    } else if (!strcmp(argv[i], "-k")) { /* navigate with vim keys */
-			vim_nav = 1;
-	        using_vim_nav = 1;
-			escape_sym = XK_Escape;
-			esc_state = 0;
 		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
@@ -1145,7 +1169,12 @@ main(int argc, char *argv[])
 			instant = 1;
 		else if (!strcmp(argv[i], "-q"))
 			quit_no_match = 1;
-		else if (i + 1 == argc)
+		else if (!strcmp(argv[i], "-vi")) {
+			vi_mode = 1;
+			/* using_vi_mode = 1; */
+			global_esc.ksym = XK_Escape;
+			global_esc.state = 0;
+		} else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-g")) {   /* number of columns in grid */
