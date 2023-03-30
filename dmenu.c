@@ -1171,7 +1171,7 @@ main(int argc, char *argv[])
 			quit_no_match = 1;
 		else if (!strcmp(argv[i], "-vi")) {
 			vi_mode = 1;
-			/* using_vi_mode = 1; */
+			using_vi_mode = start_mode;
 			global_esc.ksym = XK_Escape;
 			global_esc.state = 0;
 		} else if (i + 1 == argc)
