@@ -412,6 +412,8 @@ vi_keypress(const KeySym ksym, const XKeyEvent *ev)
 	static const size_t quit_len = LENGTH(quit_keys);
 	if (ev->state & ControlMask) {
 		switch(ksym) {
+		case XK_p: /* fallthrough */
+		case XK_P: break;
 		case XK_c:
 			cleanup();
 			exit(1);
@@ -507,7 +509,11 @@ vi_keypress(const KeySym ksym, const XKeyEvent *ev)
 	case XK_p:
 		if (text[cursor] != '\0')
 			cursor = nextrune(+1);
-		XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
+		XConvertSelection(dpy, (ev->state & ControlMask) ? clip : XA_PRIMARY,
+							utf8, utf8, win, CurrentTime);
+		return;
+	case XK_P:
+		XConvertSelection(dpy, (ev->state & ControlMask) ? clip : XA_PRIMARY,
 							utf8, utf8, win, CurrentTime);
 		return;
 	/* deletion */
