@@ -407,11 +407,28 @@ movewordedge(int dir)
 }
 
 static void
-vi_keypress(const KeySym ksym, const XKeyEvent *ev)
+vi_keypress(KeySym ksym, const XKeyEvent *ev)
 {
 	static const size_t quit_len = LENGTH(quit_keys);
 	if (ev->state & ControlMask) {
 		switch(ksym) {
+		/* movement */
+		case XK_d: /* fallthrough */
+			if (next) {
+				sel = curr = next;
+				calcoffsets();
+				goto draw;
+			} else
+				ksym = XK_G;
+			break;
+		case XK_u:
+			if (prev) {
+				sel = curr = prev;
+				calcoffsets();
+				goto draw;
+			} else
+				ksym = XK_g;
+			break;
 		case XK_p: /* fallthrough */
 		case XK_P: break;
 		case XK_c:
@@ -558,6 +575,7 @@ vi_keypress(const KeySym ksym, const XKeyEvent *ev)
 			}
 	}
 
+draw:
 	drawmenu();
 }
 
