@@ -434,6 +434,8 @@ vi_keypress(KeySym ksym, const XKeyEvent *ev)
 		case XK_c:
 			cleanup();
 			exit(1);
+		case XK_Return: /* fallthrough */
+		case XK_KP_Enter: break;
 		default: return;
 		}
 	}
