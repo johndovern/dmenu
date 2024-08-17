@@ -355,6 +355,10 @@ match(void)
 		puts(matches->text);
 		cleanup();
 		exit(0);
+	} else if(include_instant && matches && matches==matchend) {
+		puts(matches->text);
+		cleanup();
+		exit(0);
 	}
 
 	calcoffsets();
@@ -1153,7 +1157,7 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: dmenu [-befinrvPqxyz] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+	fputs("usage: dmenu [-befin[i]rvPqxyz] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
 	      "             [-x xoffset] [-y yoffset] [-z width]\n"
 	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n", stderr);
 	exit(1);
@@ -1228,8 +1232,10 @@ main(int argc, char *argv[])
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
 			reject_no_match = 1;
-		else if (!strcmp(argv[i], "-n"))   /* instant select only match */
+		else if (!strcmp(argv[i], "-n"))   /* instant select only match, excluding substrings */
 			instant = 1;
+		else if (!strcmp(argv[i], "-ni"))   /* instant select only match, including substrings */
+			instant = include_instant = 1;
 		else if (!strcmp(argv[i], "-q"))
 			quit_no_match = 1;
 		else if (!strcmp(argv[i], "-vi")) {

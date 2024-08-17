@@ -3,6 +3,7 @@
 
 static int exact = 0;       /* -e  option; if 1, dmenu only matches exactly */
 static int instant = 0;
+static int include_instant = 0;
 static int topbar = 1;      /* -b  option; if 0, dmenu appears at bottom     */
 static int centered = 0;    /* -c option; centers dmenu on screen */
 static int min_width = 960; /* minimum width when centered */

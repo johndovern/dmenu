@@ -64,7 +64,10 @@ is faster, but will lock up X until stdin reaches end\-of\-file.
 dmenu matches menu items case insensitively.
 .TP
 .B \-n
-dmenu instantly selects if only one match.
+dmenu instantly selects if only one match, excluding substrings.
+.TP
+.B \-ni
+dmenu instantly selects if only one match, including substrings.
 .TP
 .B \-P
 dmenu will not directly display the keyboard input, but instead replace it with dots. All data from stdin will be ignored.
