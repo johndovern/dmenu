@@ -30,13 +30,18 @@
 #define OPAQUE 0xFFU
 
 /* enums */
-enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeOut, SchemeCursor, SchemeLast }; /* color schemes */
 
 struct item {
 	char *text;
 	struct item *left, *right;
 	int out;
 };
+
+typedef struct {
+	KeySym ksym;
+	unsigned int state;
+} Key;
 
 static char text[BUFSIZ] = "";
 static char *embed;
@@ -48,6 +53,7 @@ static int inputw = 0, promptw, passwd = 0;
 static int lrpad; /* sum of left and right padding */
 static int reject_no_match = 0;
 static int quit_no_match = 0;
+static unsigned int using_vi_mode = 0;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
@@ -142,6 +148,15 @@ calcoffsets(void)
 			break;
 }
 
+static int
+max_textw(void)
+{
+	int len = 0;
+	for (struct item *item = items; item && item->text; item++)
+		len = MAX(TEXTW(item->text), len);
+	return len;
+}
+
 static void
 cleanup(void)
 {
@@ -186,7 +201,7 @@ drawmenu(void)
 	unsigned int curpos;
 	struct item *item;
 	int x = 0, y = 0, w;
- char *censort;
+	char *censort;
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -199,14 +214,22 @@ drawmenu(void)
 	w = (lines > 0 || !matches) ? mw - x : inputw;
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	if (passwd) {
-	        censort = ecalloc(1, sizeof(text));
+	    censort = ecalloc(1, sizeof(text));
 		memset(censort, '.', strlen(text));
 		drw_text(drw, x, 0, w, bh, lrpad / 2, censort, 0);
 		free(censort);
 	} else drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
-	if ((curpos += lrpad / 2 - 1) < w) {
+	curpos += lrpad / 2 - 1;
+	if (using_vi_mode && text[0] != '\0') {
+		drw_setscheme(drw, scheme[SchemeCursor]);
+		char vi_char[] = {text[cursor], '\0'};
+		drw_text(drw, x + curpos, 0, TEXTW(vi_char) - lrpad, bh, 0, vi_char, 0);
+	} else if (using_vi_mode) {
+		drw_setscheme(drw, scheme[SchemeNorm]);
+		drw_rect(drw, x + curpos, 2, lrpad / 2, bh - 4, 1, 0);
+	} else if (curpos < w) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
 	}
@@ -332,6 +355,10 @@ match(void)
 		puts(matches->text);
 		cleanup();
 		exit(0);
+	} else if(include_instant && matches && matches==matchend) {
+		puts(matches->text);
+		cleanup();
+		exit(0);
 	}
 
 	calcoffsets();
@@ -393,6 +420,181 @@ movewordedge(int dir)
 }
 
 static void
+vi_keypress(KeySym ksym, const XKeyEvent *ev)
+{
+	static const size_t quit_len = LENGTH(quit_keys);
+	if (ev->state & ControlMask) {
+		switch(ksym) {
+		/* movement */
+		case XK_d: /* fallthrough */
+			if (next) {
+				sel = curr = next;
+				calcoffsets();
+				goto draw;
+			} else
+				ksym = XK_G;
+			break;
+		case XK_u:
+			if (prev) {
+				sel = curr = prev;
+				calcoffsets();
+				goto draw;
+			} else
+				ksym = XK_g;
+			break;
+		case XK_p: /* fallthrough */
+		case XK_P: break;
+		case XK_c:
+			cleanup();
+			exit(1);
+		case XK_Return: /* fallthrough */
+		case XK_KP_Enter: break;
+		default: return;
+		}
+	}
+
+	switch(ksym) {
+	/* movement */
+	case XK_0:
+		cursor = 0;
+		break;
+	case XK_dollar:
+		if (text[cursor + 1] != '\0') {
+			cursor = strlen(text) - 1;
+			break;
+		}
+		break;
+	case XK_b:
+		movewordedge(-1);
+		break;
+	case XK_e:
+		cursor = nextrune(+1);
+		movewordedge(+1);
+		if (text[cursor] == '\0')
+			--cursor;
+		else
+			cursor = nextrune(-1);
+		break;
+	case XK_g:
+		if (sel == matches) {
+			break;
+		}
+		sel = curr = matches;
+		calcoffsets();
+		break;
+	case XK_G:
+		if (next) {
+			/* jump to end of list and position items in reverse */
+			curr = matchend;
+			calcoffsets();
+			curr = prev;
+			calcoffsets();
+			while (next && (curr = curr->right))
+				calcoffsets();
+		}
+		sel = matchend;
+		break;
+	case XK_h:
+		if (cursor)
+			cursor = nextrune(-1);
+		break;
+	case XK_j:
+		if (sel && sel->right && (sel = sel->right) == next) {
+			curr = next;
+			calcoffsets();
+		}
+		break;
+	case XK_k:
+		if (sel && sel->left && (sel = sel->left)->right == curr) {
+			curr = prev;
+			calcoffsets();
+		}
+		break;
+	case XK_l:
+		if (text[cursor] != '\0' && text[cursor + 1] != '\0')
+			cursor = nextrune(+1);
+		else if (text[cursor] == '\0' && cursor)
+			--cursor;
+		break;
+	case XK_w:
+		movewordedge(+1);
+		if (text[cursor] != '\0' && text[cursor + 1] != '\0')
+			cursor = nextrune(+1);
+		else if (cursor)
+			--cursor;
+		break;
+	/* insertion */
+	case XK_a:
+		cursor = nextrune(+1);
+		/* fallthrough */
+	case XK_i:
+		using_vi_mode = 0;
+		break;
+	case XK_A:
+		if (text[cursor] != '\0')
+			cursor = strlen(text);
+		using_vi_mode = 0;
+		break;
+	case XK_I:
+		cursor = using_vi_mode = 0;
+		break;
+	case XK_p:
+		if (text[cursor] != '\0')
+			cursor = nextrune(+1);
+		XConvertSelection(dpy, (ev->state & ControlMask) ? clip : XA_PRIMARY,
+							utf8, utf8, win, CurrentTime);
+		return;
+	case XK_P:
+		XConvertSelection(dpy, (ev->state & ControlMask) ? clip : XA_PRIMARY,
+							utf8, utf8, win, CurrentTime);
+		return;
+	/* deletion */
+	case XK_D:
+		text[cursor] = '\0';
+		if (cursor)
+			cursor = nextrune(-1);
+		match();
+		break;
+	case XK_x:
+		cursor = nextrune(+1);
+		insert(NULL, nextrune(-1) - cursor);
+		if (text[cursor] == '\0' && text[0] != '\0')
+			--cursor;
+		match();
+		break;
+	/* misc. */
+	case XK_Return:
+	case XK_KP_Enter:
+		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
+		if (!(ev->state & ControlMask)) {
+			cleanup();
+			exit(0);
+		}
+		if (sel)
+			sel->out = 1;
+		break;
+	case XK_Tab:
+		if (!sel)
+			return;
+		strncpy(text, sel->text, sizeof text - 1);
+		text[sizeof text - 1] = '\0';
+		cursor = strlen(text) - 1;
+		match();
+		break;
+	default:
+		for (size_t i = 0; i < quit_len; ++i)
+			if (quit_keys[i].ksym == ksym &&
+				(quit_keys[i].state & ev->state) == quit_keys[i].state) {
+				cleanup();
+				exit(1);
+			}
+	}
+
+draw:
+	drawmenu();
+}
+
+static void
 keypress(XKeyEvent *ev)
 {
 	char buf[32];
@@ -409,6 +611,18 @@ keypress(XKeyEvent *ev)
 	case XLookupKeySym:
 	case XLookupBoth:
 		break;
+	}
+
+	if (using_vi_mode) {
+		vi_keypress(ksym, ev);
+		return;
+	} else if (vi_mode &&
+			   (ksym == global_esc.ksym &&
+				(ev->state & global_esc.state) == global_esc.state)) {
+		using_vi_mode = 1;
+		if (cursor)
+			cursor = nextrune(-1);
+		goto draw;
 	}
 
 	if (ev->state & ControlMask) {
@@ -721,6 +935,8 @@ paste(void)
 		insert(p, (q = strchr(p, '\n')) ? q - p : (ssize_t)strlen(p));
 		XFree(p);
 	}
+	if (using_vi_mode && text[cursor] == '\0')
+		--cursor;
 	drawmenu();
 }
 
@@ -825,6 +1041,7 @@ setup(void)
 	bh = drw->fonts->h + 2;
 	lines = MAX(lines, 0);
 	mh = (lines + 1) * bh;
+	promptw = (prompt && *prompt) ? TEXTW(prompt) - lrpad / 4 : 0;
 #ifdef XINERAMA
 	i = 0;
 	if (parentwin == root && (info = XineramaQueryScreens(dpy, &n))) {
@@ -854,9 +1071,22 @@ setup(void)
 		/* x = info[i].x_org; */
 		/* y = info[i].y_org + (topbar ? 0 : info[i].height - mh); */
 		/* mw = info[i].width; */
-		x = info[i].x_org + dmx;
-		y = info[i].y_org + (topbar ? dmy : info[i].height - mh - dmy);
-		mw = (dmw>0 ? dmw : info[i].width);
+		/* x = info[i].x_org + dmx; */
+		/* y = info[i].y_org + (topbar ? dmy : info[i].height - mh - dmy); */
+		/* mw = (dmw>0 ? dmw : info[i].width); */
+		if (centered) {
+			mw = MIN(MAX(max_textw() + promptw, min_width), info[i].width);
+			x = info[i].x_org + ((info[i].width  - mw) / 2);
+			y = info[i].y_org + ((info[i].height - mh) / 2);
+		} else {
+			x = info[i].x_org + dmx;
+			y = info[i].y_org + (topbar ? dmy : info[i].height - mh - dmy);
+			mw = (dmw>0 ? dmw : info[i].width);
+			/* x = info[i].x_org; */
+			/* y = info[i].y_org + (topbar ? 0 : info[i].height - mh); */
+			/* mw = info[i].width; */
+		}
+
 		XFree(info);
 	} else
 #endif
@@ -867,9 +1097,21 @@ setup(void)
 		/* x = 0; */
 		/* y = topbar ? 0 : wa.height - mh; */
 		/* mw = wa.width; */
-		x = dmx;
-		y = topbar ? dmy : wa.height - mh - dmy;
-		mw = (dmw>0 ? dmw : wa.width);
+		/* x = dmx; */
+		/* y = topbar ? dmy : wa.height - mh - dmy; */
+		/* mw = (dmw>0 ? dmw : wa.width); */
+		if (centered) {
+			mw = MIN(MAX(max_textw() + promptw, min_width), wa.width);
+			x = (wa.width  - mw) / 2;
+			y = (wa.height - mh) / 2;
+		} else {
+			/* x = 0; */
+			/* y = topbar ? 0 : wa.height - mh; */
+			/* mw = wa.width; */
+			x = dmx;
+			y = topbar ? dmy : wa.height - mh - dmy;
+			mw = (dmw>0 ? dmw : wa.width);
+		}
 	}
 	promptw = (prompt && *prompt) ? TEXTW(prompt) - lrpad / 4 : 0;
 	inputw = MIN(inputw, mw/3);
@@ -915,7 +1157,7 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: dmenu [-befinrvPqxyz] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+	fputs("usage: dmenu [-befin[i]rvPqxyz] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
 	      "             [-x xoffset] [-y yoffset] [-z width]\n"
 	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n", stderr);
 	exit(1);
@@ -940,6 +1182,12 @@ read_Xresources(void) {
 		if (XrmGetResource(xdb, "dmenu.colornfg", "*", &type, &xval) == True)  /* normal foreground color */
 			colors[SchemeNorm][ColFg] = strdup(xval.addr);
 
+											/* Cursor scheme */
+		if (XrmGetResource(xdb, "dmenu.colorcurbg", "*", &type, &xval) == True)  /* cursor background color */
+			colors[SchemeCursor][ColBg] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorcurfg", "*", &type, &xval) == True)  /* cursor foreground color */
+			colors[SchemeCursor][ColFg] = strdup(xval.addr);
+
 											/* Select scheme */
 		if (XrmGetResource(xdb, "dmenu.colorselbg", "*", &type, &xval) == True)  /* selected background color */
 			colors[SchemeSel][ColBg] = strdup(xval.addr);
@@ -949,9 +1197,10 @@ read_Xresources(void) {
 											/* Border scheme */
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeNorm][ColBorder] = strdup(xval.addr);
-
 		if (XrmGetResource(xdb, "dmenu.colorselbord", "*", &type, &xval) == True) /* normal border */
 			colors[SchemeSel][ColBorder] = strdup(xval.addr);
+		if (XrmGetResource(xdb, "dmenu.colorcurbord", "*", &type, &xval) == True) /* normal border */
+			colors[SchemeCursor][ColBorder] = strdup(xval.addr);
 
 		XrmDestroyDatabase(xdb);
 	}
@@ -974,18 +1223,27 @@ main(int argc, char *argv[])
 			exact = 1;
 		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
 			fast = 1;
+		else if (!strcmp(argv[i], "-c"))   /* centers dmenu on screen */
+			centered = 1;
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
-		} else if (!strcmp(argv[i], "-P"))    /* is the input a password */
+		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
-		else if (!strcmp(argv[i], "-r")) /* reject input which results in no match */
+		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
 			reject_no_match = 1;
-		else if (!strcmp(argv[i], "-n")) /* instant select only match */
+		else if (!strcmp(argv[i], "-n"))   /* instant select only match, excluding substrings */
 			instant = 1;
+		else if (!strcmp(argv[i], "-ni"))   /* instant select only match, including substrings */
+			instant = include_instant = 1;
 		else if (!strcmp(argv[i], "-q"))
 			quit_no_match = 1;
-		else if (i + 1 == argc)
+		else if (!strcmp(argv[i], "-vi")) {
+			vi_mode = 1;
+			using_vi_mode = start_mode;
+			global_esc.ksym = XK_Escape;
+			global_esc.state = 0;
+		} else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-g")) {   /* number of columns in grid */
