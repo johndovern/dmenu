@@ -1156,7 +1156,6 @@ setup(void)
 		XSetWindowBorder(dpy, win, scheme[SchemeSel][ColBorder].pixel);
 	XSetClassHint(dpy, win, &ch);
 
-
 	/* input methods */
 	if ((xim = XOpenIM(dpy, NULL, NULL, NULL)) == NULL)
 		die("XOpenIM failed: could not open input device");
