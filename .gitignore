@@ -3,3 +3,6 @@
 dmenu
 stest
 *.diff
+*.orig
+*.rej
+compile_commands.json
