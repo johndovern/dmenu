@@ -171,17 +171,6 @@ cleanup(void)
 	FcFini();
 }
 
-static char *
-cistrstr(const char *s, const char *sub)
-{
-	size_t len;
-
-	for (len = strlen(sub); *s; s++)
-		if (!strncasecmp(s, sub, len))
-			return (char *)s;
-	return NULL;
-}
-
 static int
 drawitem(struct item *item, int x, int y, int w)
 {
@@ -1238,7 +1227,7 @@ main(int argc, char *argv[])
 			centered = 1;
 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
-			fstrstr = cistrstr;
+			fstrstr = strcasestr;
 		} else if (!strcmp(argv[i], "-P")) /* is the input a password */
 		        passwd = 1;
 		else if (!strcmp(argv[i], "-r"))   /* reject input which results in no match */
