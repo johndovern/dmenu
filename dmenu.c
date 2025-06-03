@@ -947,10 +947,10 @@ readstdin(void)
 	size_t i, imax = 0, size = 0;
 	unsigned int tmpmax = 0;
 
-  if(passwd){
-    inputw = lines = 0;
-    return;
-  }
+	if (passwd) {
+		inputw = lines = 0;
+		return;
+	}
 
 	/* read each line from stdin and add it to the item list */
 	for (i = 0; fgets(buf, sizeof buf, stdin); i++) {
